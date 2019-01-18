@@ -1,0 +1,6 @@
+#! /bin/bash
+# print the date and time
+# Usage: timestamp
+
+date $*:q -u '+%d.%m.%Y. %H:%M'
+

@@ -1,0 +1,126 @@
+#!/usr/bin/python
+#
+# usage: image2text [-h] [-g] [-t TOPHAT] [-s] image
+
+import argparse
+from os import path
+
+import cv2
+
+import numpy as np
+
+import pytesseract
+
+PARSER = argparse.ArgumentParser()
+
+PARSER.add_argument('image',
+                    type=str,
+                    help='Image for conversion')
+PARSER.add_argument('-g', '--gray',
+                    action='store_true',
+                    help='Converts image to grayscale')
+PARSER.add_argument('-t', '--tophat',
+                    type=str,
+                    help='Preform Top-hat morphological operation. Provide a shape of array ' +
+                    'to generate (eg. 5,5 or "5,5"). Note: only usable with --gray')
+PARSER.add_argument('-s', '--show',
+                    action='store_true',
+                    help='Shows the image the script is seeing')
+PARSER.add_argument('-l', '--lang',
+                    type=str,
+                    help='Which language to use (eg. eng, srp, srp_latn)')
+
+ARGS = PARSER.parse_args()
+
+DEF_LANG = 'eng'
+
+def gray_image(image):
+    """Converts an image to grayscale and invokes the top_hat function if it's requested
+
+    Keyword arguments:
+    image -- image that requires processing
+
+    Return: processed image
+    """
+
+    image = cv2.cvtColor(image,
+                         cv2.COLOR_BGR2GRAY)
+
+    if ARGS.tophat:
+        image = top_hat(image)
+
+    return image
+
+def top_hat(image):
+    """Preforms a top-hat morphological operation
+
+    Keyword arguments:
+    image -- image to preform the top-hat operation on
+
+    Return: processed image
+    """
+
+    try:
+        ARGS.tophat = [int(item) for item in ARGS.tophat.split(',')]
+    except ValueError:
+        print("You've entered invalid values for tophat...")
+
+    if len(ARGS.tophat) is not 2:
+        print('You didn\'t specify the correct shape of array (eg. 5,5 or "5,5"). Top-hat won\'t be preformed')
+    else:
+        kernel = np.ones(ARGS.tophat,
+                         np.uint8)
+        image = cv2.morphologyEx(image,
+                                 cv2.MORPH_TOPHAT,
+                                 kernel)
+    return image
+
+def main(image_file):
+    """Main method
+
+    Keyword arguments:
+    image_file -- image location
+
+    Return: text from image
+    """
+    image = cv2.imread(image_file)
+
+    if image is None:
+        print('{} might not be a valid image'.format(image_file))
+        return
+
+    if ARGS.gray:
+        image = gray_image(image)
+
+    txt = pytesseract.image_to_string(image,
+                                      lang=(ARGS.lang if ARGS.lang is not None else DEF_LANG)).encode('utf-8')
+
+    print(txt.decode('utf-8'))
+
+    if ARGS.show:
+        cv2.putText(image,
+                    'Press any key to exit',
+                    (10, 30),
+                    cv2.FONT_HERSHEY_PLAIN,
+                    1.2,
+                    (255, 255, 255),
+                    1)
+
+        cv2.imshow(image_file, image)
+
+        cv2.setWindowProperty(image_file, 
+                              cv2.WND_PROP_FULLSCREEN,
+                              cv2.WINDOW_FULLSCREEN)
+
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    if ARGS.tophat and not ARGS.gray:
+        print('--tophat needs the image to be converted to grayscale, use --gray (-g).')
+
+    try:
+        main(path.abspath(ARGS.image))
+    except KeyboardInterrupt:
+        print('Stoping....')
+        exit(0)

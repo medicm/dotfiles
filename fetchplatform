@@ -1,0 +1,23 @@
+#! /bin/bash
+
+PLATFORM_TYPE=$OSTYPE
+PLATFORM_KERNAL_VERSION=`uname -r`
+PLATFORM_DIST=`uname -s`
+PLATFORM_DIST_VERSION=`uname -r`
+
+case "$PLATFORM_TYPE" in
+    linux-gnu)
+        eval `lsb_release -a 2>/dev/null | awk '/^Distributor ID:/ {
+            print "PLATFORM_DIST=\""$3"\";";
+        } /^Release:/ {
+            print "PLATFORM_DIST_VERSION=\""$2"\";";
+        }'`
+        ;;
+    darwin*)
+        PLATFORM_TYPE="darwin"
+esac
+
+printf "type:           %s\n" "$PLATFORM_TYPE"
+printf "kernal_version: %s\n" "$PLATFORM_KERNAL_VERSION"
+printf "dist:           %s\n" "$PLATFORM_DIST"
+printf "dist_version:   %s\n" "$PLATFORM_DIST_VERSION"
